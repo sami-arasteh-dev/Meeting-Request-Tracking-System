@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم درخواست و پیگیری جلسه</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vazirmatn Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <!-- Signature Pad -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f1f5f9; }
+        .tab-btn.active {
+            background-color: #1e3a8a;
+            color: #ffffff;
+            border-bottom: 3px solid #3b82f6;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- هدر اصلی و تب‌ها -->
+    <header class="bg-white shadow-md border-b sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center py-3">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 bg-blue-900 text-white flex items-center justify-center rounded-lg font-bold text-xl shadow">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-gray-900">سامانه رسمی درخواست جلسه</h1>
+                    <p class="text-xs text-gray-500">مدیریت هماهنگی و برگزاری جلسات سازمانی</p>
+                </div>
+            </div>
+          
+        </div>
+
+        <!-- دکمه‌های تب -->
+        <div class="bg-gray-100 border-t">
+            <div class="max-w-5xl mx-auto flex flex-wrap">
+                <button onclick="switchTab('submit-tab')" id="btn-submit-tab" class="tab-btn active px-6 py-3 font-semibold text-sm flex items-center gap-2 transition border-l">
+                    <i class="fa-solid fa-file-pen"></i> ثبت درخواست جلسه
+                </button>
+                <button onclick="switchTab('track-tab')" id="btn-track-tab" class="tab-btn px-6 py-3 font-semibold text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2 transition border-l">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> پیگیری درخواست
+                </button>
+                <button onclick="switchTab('emergency-tab')" id="btn-emergency-tab" class="tab-btn px-6 py-3 font-semibold text-sm text-red-600 hover:text-red-800 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-triangle-exclamation"></i> درخواست جلسه اضطراری
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- ==================== تب ۱: ثبت درخواست ==================== -->
+        <div id="submit-tab" class="tab-content active">
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-8">
+                
+                <!-- سربرگ رسمی فرم -->
+                <div class="border-b-2 border-gray-800 pb-4 mb-6 flex justify-between items-center flex-wrap gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="border-2 border-green-700 text-green-700 font-bold px-3 py-1.5 rounded-md text-xs flex items-center gap-1">
+                            <i class="fa-solid fa-circle-check"></i> مستندات معتبر
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-900">فرم درخواست جلسه</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">صفحه ۱ از ۱</p>
+                        </div>
+                    </div>
+                    <div class="text-left font-bold text-gray-800 tracking-wider">
+                        <span class="text-sm bg-gray-100 border px-3 py-1 rounded">سازمان / شرکت</span>
+                    </div>
+                </div>
+
+                <form id="meetingForm" class="space-y-6">
+                    
+                    <!-- ۱. اطلاعات درخواست‌کننده -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <h3 class="text-md font-bold text-blue-900 mb-3 pb-2 border-b flex items-center gap-2">
+                            <i class="fa-solid fa-user-tie"></i> اطلاعات درخواست‌کننده
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">نام و نام خانوادگی <span class="text-red-500">*</span></label>
+                                <input type="text" id="req_name" required class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">واحد سازمانی / سمت <span class="text-red-500">*</span></label>
+                                <input type="text" id="req_role" required class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">شماره تماس (داخلی/شخصی) <span class="text-red-500">*</span></label>
+                                <input type="text" id="req_phone" dir="ltr" required class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ۲. اطلاعات جلسه -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <h3 class="text-md font-bold text-blue-900 mb-3 pb-2 border-b flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days"></i> اطلاعات جلسه
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">موضوع جلسه <span class="text-red-500">*</span></label>
+                                <input type="text" id="subject" required class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">هدف از برگزاری جلسه</label>
+                                <input type="text" id="goal" class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">تاریخ و ساعت پیشنهادی جلسه <span class="text-red-500">*</span></label>
+                                <input type="text" id="proposed_date" placeholder="مثلا: 1405/05/10 ساعت 10:30" required class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">مدت زمان تقریبی</label>
+                                <input type="text" id="duration" placeholder="مثلاً: 1.5 ساعت" class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">مکان برگزاری پیشنهادی</label>
+                                <input type="text" id="location" placeholder="مثلا: اتاق جلسات مدیر عامل / لینک آنلاین" class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- نوع جلسه و اولویت -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-2">نوع جلسه:</label>
+                                <div class="flex gap-4 text-sm">
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="meeting_type" value="حضوری" checked class="accent-blue-700"> حضوری</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="meeting_type" value="آنلاین" class="accent-blue-700"> آنلاین</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="meeting_type" value="ترکیبی" class="accent-blue-700"> ترکیبی</label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-2">اولویت:</label>
+                                <div class="flex gap-4 text-sm">
+                                    <label class="flex items-center gap-1 cursor-pointer text-red-600 font-bold"><input type="radio" name="priority" value="فوری" class="accent-red-600"> فوری</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="priority" value="عادی" checked class="accent-blue-700"> عادی</label>
+                                    <label class="flex items-center gap-1 cursor-pointer text-gray-600"><input type="radio" name="priority" value="قابل تعویق" class="accent-gray-600"> قابل تعویق</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ۳. حاضرین پیشنهادی -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b">
+                            <h3 class="text-md font-bold text-blue-900 flex items-center gap-2">
+                                <i class="fa-solid fa-users"></i> حاضرین پیشنهادی
+                            </h3>
+                            <button type="button" onclick="addAttendeeRow()" class="bg-blue-800 hover:bg-blue-900 text-white text-xs px-3 py-1.5 rounded-md flex items-center gap-1 transition">
+                                <i class="fa-solid fa-plus"></i> افزودن نفر جدید
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-right border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-200 text-gray-700">
+                                        <th class="p-2 border border-gray-300 w-12 text-center">ردیف</th>
+                                        <th class="p-2 border border-gray-300">نام و نام خانوادگی</th>
+                                        <th class="p-2 border border-gray-300">نام واحد سازمانی</th>
+                                        <th class="p-2 border border-gray-300 w-16 text-center">عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendeesTableBody">
+                                    <!-- ردیف‌های پویا در اینجا افزوده می‌شوند -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ۴. توضیحات تکمیلی -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">توضیحات تکمیلی:</label>
+                        <textarea id="extra_notes" rows="3" class="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="هرگونه توضیحات یا نیازهای خاص جلسه را وارد کنید..."></textarea>
+                    </div>
+
+                    <!-- ۵. پد امضاء -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col items-center">
+                        <label class="block text-sm font-bold text-gray-800 mb-2 w-full text-right">امضای درخواست‌کننده <span class="text-red-500">*</span></label>
+                        <div class="border-2 border-gray-300 bg-white rounded-lg shadow-inner p-1">
+                            <canvas id="signatureCanvas" width="450" height="150" class="cursor-crosshair rounded"></canvas>
+                        </div>
+                        <div class="flex justify-between w-full max-w-[450px] mt-2">
+                            <span class="text-xs text-gray-500">لطفا امضای خود را درون کادر فوق رسم کنید</span>
+                            <button type="button" onclick="signaturePad.clear()" class="text-xs text-red-600 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-eraser"></i> پاک کردن امضاء
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- دکمه ثبت -->
+                    <button type="submit" class="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-paper-plane"></i> ثبت نهایی درخواست و دریافت کد پیگیری
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ==================== تب ۲: پیگیری درخواست ==================== -->
+        <div id="track-tab" class="tab-content">
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-8 max-w-2xl mx-auto">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-barcode"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">پیگیری وضعیت درخواست جلسه</h2>
+                    <p class="text-xs text-gray-500 mt-1">کد پیگیری دریافت شده هنگام ثبت درخواست را وارد کنید</p>
+                </div>
+
+                <div class="flex gap-2 mb-6">
+                    <input type="text" id="trackInput" placeholder="مثلا: TRK-20260720-1234" dir="ltr" class="flex-grow border-2 border-gray-300 focus:border-blue-700 rounded-lg p-3 text-center text-lg font-mono tracking-widest outline-none">
+                    <button onclick="performTracking()" class="bg-blue-900 hover:bg-blue-950 text-white font-bold px-6 py-3 rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-search"></i> پیگیری
+                    </button>
+                </div>
+
+                <!-- باکس نمایش نتیجه پیگیری -->
+                <div id="trackResultBox" class="hidden border rounded-lg p-5 bg-slate-50 space-y-4">
+                    <!-- پر شده با JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== تب ۳: درخواست جلسه اضطراری ==================== -->
+        <div id="emergency-tab" class="tab-content">
+            <div class="bg-white rounded-xl shadow-lg border border-red-200 p-6 md:p-8 max-w-2xl mx-auto">
+                <div class="text-center mb-6 border-b pb-4">
+                    <div class="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-red-900">فرم درخواست جلسه اضطراری</h2>
+                    <p class="text-xs text-gray-500 mt-1">ارسال مستقیم پیامک اطلاع‌رسانی به مدیرعامل</p>
+                </div>
+
+                <form id="emergencyForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">نام و نام خانوادگی <span class="text-red-500">*</span></label>
+                            <input type="text" id="em_name" required class="w-full border rounded-md p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">سمت شغلی <span class="text-red-500">*</span></label>
+                            <input type="text" id="em_role" required class="w-full border rounded-md p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">موضوع جلسه <span class="text-red-500">*</span></label>
+                            <input type="text" id="em_subject" required class="w-full border rounded-md p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">شماره تلفن همراه <span class="text-red-500">*</span></label>
+                            <input type="text" id="em_phone" dir="ltr" placeholder="09123456789" required class="w-full border rounded-md p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none text-right">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">توضیحات احتمالی</label>
+                        <textarea id="em_notes" rows="3" class="w-full border rounded-md p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="خلاصه‌ای از علت اضطراری بودن جلسه..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-lg shadow transition flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-paper-plane"></i> ثبت درخواست
+                    </button>
+                </form>
+
+                <!-- هشدار قانونی انتها -->
+                <div class="mt-6 p-4 bg-red-50 border-r-4 border-red-600 rounded-md text-xs text-red-900 leading-relaxed flex items-start gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-base text-red-600 shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong>تذکر مهم:</strong> این فرم تنها در موارد خیلی ضروری که امکان رسیدگی به اون در سطح مدیران و معاونین وجود نداره طراحی شده و استفاده غیر از این میتونه جریمه در پی داشته باشه.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t py-4 text-center text-xs text-gray-500 mt-auto">
+        سیستم جامع درخواست جلسه و هماهنگی | طراحی شده با Python + SQLite
+    </footer>
+
+    <script>
+        let signaturePad;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('signatureCanvas');
+            signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+            
+            // افزودن ۲ ردیف پیش‌فرض برای حاضرین
+            addAttendeeRow();
+            addAttendeeRow();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+        }
+
+        let attendeeCounter = 0;
+        function addAttendeeRow() {
+            attendeeCounter++;
+            const tbody = document.getElementById('attendeesTableBody');
+            const tr = document.createElement('tr');
+            tr.id = `attendee-row-${attendeeCounter}`;
+            tr.innerHTML = `
+                <td class="p-2 border border-gray-300 text-center font-bold text-gray-500 row-num"></td>
+                <td class="p-2 border border-gray-300">
+                    <input type="text" class="att-name w-full border rounded p-1 text-xs outline-none focus:border-blue-500">
+                </td>
+                <td class="p-2 border border-gray-300">
+                    <input type="text" class="att-unit w-full border rounded p-1 text-xs outline-none focus:border-blue-500">
+                </td>
+                <td class="p-2 border border-gray-300 text-center">
+                    <button type="button" onclick="removeAttendeeRow('attendee-row-${attendeeCounter}')" class="text-red-500 hover:text-red-700">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            reindexAttendees();
+        }
+
+        function removeAttendeeRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+                reindexAttendees();
+            }
+        }
+
+        function reindexAttendees() {
+            const rows = document.querySelectorAll('#attendeesTableBody tr');
+            rows.forEach((row, idx) => {
+                const cell = row.querySelector('.row-num');
+                if (cell) cell.innerText = idx + 1;
+            });
+        }
+
+        // ارسال فرم عادی به پایتون
+        document.getElementById('meetingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (signaturePad.isEmpty()) {
+                Swal.fire({ icon: 'warning', title: 'خطای امضاء', text: 'لطفاً فرم را امضاء کنید.' });
+                return;
+            }
+
+            const attendees = [];
+            document.querySelectorAll('#attendeesTableBody tr').forEach(row => {
+                const name = row.querySelector('.att-name').value.trim();
+                const unit = row.querySelector('.att-unit').value.trim();
+                if (name) {
+                    attendees.push({ name: name, unit: unit });
+                }
+            });
+
+            const payload = {
+                req_name: document.getElementById('req_name').value,
+                req_role: document.getElementById('req_role').value,
+                req_phone: document.getElementById('req_phone').value,
+                subject: document.getElementById('subject').value,
+                goal: document.getElementById('goal').value,
+                proposed_date: document.getElementById('proposed_date').value,
+                duration: document.getElementById('duration').value,
+                location: document.getElementById('location').value,
+                meeting_type: document.querySelector('input[name="meeting_type"]:checked').value,
+                priority: document.querySelector('input[name="priority"]:checked').value,
+                attendees: attendees,
+                extra_notes: document.getElementById('extra_notes').value,
+                signature: signaturePad.toDataURL()
+            };
+
+            Swal.fire({ title: 'در حال ثبت اطلاعات...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch('/api/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ثبت با موفقیت انجام شد',
+                        html: `
+                            <p class="text-sm mb-3">درخواست جلسه شما در سیستم ثبت گردید.</p>
+                            <p class="text-xs text-gray-600 mb-1">کد پیگیری شما:</p>
+                            <div class="bg-gray-100 border p-3 rounded font-mono text-xl font-bold text-blue-900 tracking-widest selection:bg-blue-200">
+                                ${result.tracking_code}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3">لطفاً کد پیگیری فوق را جهت بررسی وضعیت درخواست نگه دارید.</p>
+                        `,
+                        confirmButtonText: 'متوجه شدم'
+                    }).then(() => {
+                        document.getElementById('meetingForm').reset();
+                        signaturePad.clear();
+                        document.getElementById('attendeesTableBody').innerHTML = '';
+                        addAttendeeRow();
+                        addAttendeeRow();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'خطا در ثبت', text: result.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'خطای ارتباط', text: 'امکان برقراری ارتباط با سرور پایتون وجود ندارد.' });
+            }
+        });
+
+        // پیگیری درخواست
+        async function performTracking() {
+            const code = document.getElementById('trackInput').value.trim();
+            if (!code) {
+                Swal.fire({ icon: 'warning', title: 'ورودی خالی', text: 'لطفاً کد پیگیری را وارد نمایید.' });
+                return;
+            }
+
+            const box = document.getElementById('trackResultBox');
+            box.classList.add('hidden');
+
+            try {
+                const res = await fetch(`/api/track/${encodeURIComponent(code)}`);
+                const result = await res.json();
+
+                if (res.ok) {
+                    const d = result.data;
+                    let badgeClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+                    if (d.status === 'موافقت شده') badgeClass = 'bg-green-100 text-green-800 border-green-300';
+                    if (d.status === 'عدم موافقت') badgeClass = 'bg-red-100 text-red-800 border-red-300';
+
+                    let attendeesHtml = '';
+                    if (d.attendees && d.attendees.length > 0) {
+                        attendeesHtml = `
+                            <div class="text-xs text-gray-700 bg-white p-2 rounded border mt-2">
+                                <strong>حاضرین پیشنهادی:</strong>
+                                <ul class="list-disc list-inside mt-1">
+                                    ${d.attendees.map(a => `<li>${a.name} (${a.unit || 'نامشخص'})</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+
+                    box.innerHTML = `
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <span class="text-sm font-bold text-gray-700">کد پیگیری: <span class="font-mono text-blue-900">${d.tracking_code}</span></span>
+                            <span class="px-3 py-1 text-xs font-bold rounded-full border ${badgeClass}">${d.status}</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div><strong>درخواست‌کننده:</strong> ${d.req_name} (${d.req_role})</div>
+                            <div><strong>موضوع جلسه:</strong> ${d.subject}</div>
+                            <div><strong>تاریخ و ساعت:</strong> ${d.proposed_date}</div>
+                            <div><strong>مکان برگزاری:</strong> ${d.location || 'تعیین نشده'}</div>
+                        </div>
+                        ${attendeesHtml}
+                        ${d.admin_notes ? `
+                            <div class="bg-blue-50 border border-blue-200 p-3 rounded text-xs">
+                                <strong class="text-blue-900">توضیحات و نظر ادمین:</strong>
+                                <p class="mt-1 text-gray-800">${d.admin_notes}</p>
+                            </div>
+                        ` : ''}
+                    `;
+                    box.classList.remove('hidden');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'یافت نشد', text: result.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'خطا', text: 'اشکال در برقراری ارتباط با سیستم.' });
+            }
+        }
+
+        // مدیریت و ارسال فرم اضطراری (ارسال پیامک)
+        document.getElementById('emergencyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('em_name').value.trim();
+            const role = document.getElementById('em_role').value.trim();
+            const subject = document.getElementById('em_subject').value.trim();
+            const phone = document.getElementById('em_phone').value.trim();
+            const notes = document.getElementById('em_notes').value.trim();
+
+            let msg = `جلسه اضطراری\nنام: ${name}\nسمت: ${role}\nموضوع: ${subject}\nشماره: ${phone}`;
+            if (notes) {
+                msg += `\nتوضیحات: ${notes}`;
+            }
+
+            const smsUrl = `http://www.payam-resan.com/APISend.aspx?Username=09155296239&Password=3112768a&From=50004075002160&To=09153133011,&Text=${encodeURIComponent(msg)}`;
+
+            Swal.fire({ title: 'در حال ارسال پیامک...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                // ارسال درخواست به پنل پیامک
+                await fetch(smsUrl, { mode: 'no-cors' });
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'پیامک با موفقیت ارسال شد',
+                    text: 'درخواست جلسه اضطراری شما جهت بررسی به مدیرعامل پیامک شد.',
+                    confirmButtonText: 'متوجه شدم'
+                }).then(() => {
+                    document.getElementById('emergencyForm').reset();
+                });
+            } catch (err) {
+                // روش پشتیبان برای اطمینان از فرستاده شدن درخواست در صورت محدویت CORS مرورگر
+                const img = new Image();
+                img.src = smsUrl;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'پیامک با موفقیت ارسال شد',
+                    text: 'درخواست جلسه اضطراری شما جهت بررسی به مدیرعامل پیامک شد.',
+                    confirmButtonText: 'متوجه شدم'
+                }).then(() => {
+                    document.getElementById('emergencyForm').reset();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
