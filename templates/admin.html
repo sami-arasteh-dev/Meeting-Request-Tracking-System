@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد مدیریت درخواست‌های جلسه</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vazirmatn Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
+        .accordion-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, padding 0.3s ease-in-out;
+        }
+        .accordion-detail.open {
+            max-height: 1200px;
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- هدر داشبورد ادمین -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 bg-blue-600 flex items-center justify-center rounded-lg font-bold text-xl">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">داشبورد مدیریت درخواست‌ها</h1>
+                    <p class="text-xs text-slate-400">بررسی لایو، تایید/رد و بروزرسانی جلسات</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="requestNotificationPermission()" id="notifBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-bell"></i> فعال‌سازی نوتیفیکیشن
+                </button>
+                <a href="/" class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                    <i class="fa-solid fa-arrow-left"></i> مشاهده فرم کاربر
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- کارت‌های آمار سریع و سرچ -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">کل درخواست‌ها</p>
+                    <h3 id="statTotal" class="text-2xl font-black text-slate-800">۰</h3>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">در حال بررسی</p>
+                    <h3 id="statPending" class="text-2xl font-black text-yellow-600">۰</h3>
+                </div>
+                <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">موافقت شده</p>
+                    <h3 id="statApproved" class="text-2xl font-black text-green-600">۰</h3>
+                </div>
+                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">عدم موافقت</p>
+                    <h3 id="statRejected" class="text-2xl font-black text-red-600">۰</h3>
+                </div>
+                <div class="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول اصلی درخواست‌ها -->
+        <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-slate-800 text-base">جدول لحظه‌ای درخواست‌های جلسه</h2>
+                    <span class="inline-flex items-center gap-1 text-[11px] bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> زنده
+                    </span>
+                </div>
+
+                <!-- سرچ زنده -->
+                <div class="relative w-full md:w-80">
+                    <input type="text" id="liveSearchInput" onkeyup="filterRequests()" placeholder="جستجوی زنده (نام، موضوع، کد پیگیری)..." class="w-full pl-3 pr-9 py-2 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <i class="fa-solid fa-search absolute right-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead class="bg-slate-800 text-slate-200 text-xs">
+                        <tr>
+                            <th class="p-3 border-b">کد پیگیری</th>
+                            <th class="p-3 border-b">درخواست‌کننده</th>
+                            <th class="p-3 border-b">موضوع جلسه</th>
+                            <th class="p-3 border-b">تاریخ پیشنهادی</th>
+                            <th class="p-3 border-b">نوع / اولویت</th>
+                            <th class="p-3 border-b">وضعیت</th>
+                            <th class="p-3 border-b text-center">جزئیات / عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsTableBody" class="divide-y divide-slate-100">
+                        <!-- پر شده با JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let allRequests = [];
+        let knownMaxId = 0;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchRequests();
+            // بروزرسانی لایو هر ۵ ثانیه
+            setInterval(checkLiveUpdates, 5000);
+        });
+
+        async function fetchRequests() {
+            try {
+                const res = await fetch('/api/admin/requests');
+                const result = await res.json();
+                if (result.status === 'success') {
+                    allRequests = result.data;
+                    if (allRequests.length > 0) {
+                        knownMaxId = Math.max(...allRequests.map(r => r.id));
+                    }
+                    renderTable(allRequests);
+                    updateStats();
+                }
+            } catch (err) {
+                console.error("خطا در دریافت لیست:", err);
+            }
+        }
+
+        async function checkLiveUpdates() {
+            try {
+                const res = await fetch('/api/admin/check-new');
+                const result = await res.json();
+                if (result.latest_id > knownMaxId) {
+                    // درخواست جدید آمده!
+                    knownMaxId = result.latest_id;
+                    sendNotification("درخواست جلسه جدید!", "یک درخواست جلسه جدید در سیستم ثبت شد.");
+                    fetchRequests();
+                }
+            } catch (err) {
+                console.error("خطا در پایش لایو:", err);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').innerText = allRequests.length;
+            document.getElementById('statPending').innerText = allRequests.filter(r => r.status === 'در حال بررسی').length;
+            document.getElementById('statApproved').innerText = allRequests.filter(r => r.status === 'موافقت شده').length;
+            document.getElementById('statRejected').innerText = allRequests.filter(r => r.status === 'عدم موافقت').length;
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('requestsTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">هیچ درخواستی در سیستم یافت نشد.</td></tr>`;
+                return;
+            }
+
+            data.forEach(req => {
+                let statusBadge = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+                if (req.status === 'موافقت شده') statusBadge = 'bg-green-100 text-green-800 border-green-300';
+                if (req.status === 'عدم موافقت') statusBadge = 'bg-red-100 text-red-800 border-red-300';
+
+                let priorityClass = req.priority === 'فوری' ? 'text-red-600 font-bold' : 'text-slate-600';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-xs font-bold text-blue-900">${req.tracking_code}</td>
+                    <td class="p-3">
+                        <div class="font-semibold text-slate-800">${req.req_name}</div>
+                        <div class="text-[11px] text-slate-500">${req.req_role}</div>
+                    </td>
+                    <td class="p-3 font-medium text-slate-700">${req.subject}</td>
+                    <td class="p-3 text-xs text-slate-600">${req.proposed_date}</td>
+                    <td class="p-3 text-xs">
+                        <span class="bg-slate-100 px-2 py-0.5 rounded border">${req.meeting_type}</span>
+                        <span class="${priorityClass} mr-1">${req.priority}</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="px-2.5 py-1 text-xs font-bold rounded-full border ${statusBadge}">${req.status}</span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="toggleAccordion(${req.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded text-xs font-semibold border border-blue-200 transition inline-flex items-center gap-1">
+                            <span>بررسی</span>
+                            <i id="icon-${req.id}" class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+                    </td>
+                `;
+
+                // ردیف آکاردئون
+                const accordionTr = document.createElement('tr');
+                accordionTr.id = `acc-row-${req.id}`;
+                accordionTr.innerHTML = `
+                    <td colspan="7" class="p-0 border-b bg-slate-50">
+                        <div id="acc-content-${req.id}" class="accordion-detail px-6 py-0">
+                            <div class="py-4 border-t border-slate-200 space-y-4">
+                                
+                                <!-- جزییات کاملی که کاربر ثبت کرده -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-lg border text-xs">
+                                    <div><strong>شماره تماس:</strong> <span dir="ltr">${req.req_phone}</span></div>
+                                    <div><strong>هدف جلسه:</strong> ${req.goal || 'ثبت نشده'}</div>
+                                    <div><strong>مدت زمان:</strong> ${req.duration || 'ثبت نشده'}</div>
+                                    <div><strong>مکان پیشنهادی:</strong> ${req.location || 'ثبت نشده'}</div>
+                                    <div class="md:col-span-2"><strong>توضیحات تکمیلی:</strong> ${req.extra_notes || 'ندارد'}</div>
+                                </div>
+
+                                <!-- جدول حاضرین -->
+                                ${req.attendees && req.attendees.length > 0 ? `
+                                    <div class="bg-white p-3 rounded-lg border">
+                                        <h4 class="font-bold text-xs text-slate-700 mb-2">لیست حاضرین پیشنهادی:</h4>
+                                        <div class="flex flex-wrap gap-2 text-xs">
+                                            ${req.attendees.map(a => `<span class="bg-slate-100 border px-2.5 py-1 rounded-md text-slate-700"><strong>${a.name}</strong> (${a.unit || 'واحد نامشخص'})</span>`).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- تصویر امضاء -->
+                                ${req.signature ? `
+                                    <div class="bg-white p-3 rounded-lg border w-fit">
+                                        <h4 class="font-bold text-xs text-slate-700 mb-1">تصویر امضای درخواست‌کننده:</h4>
+                                        <img src="${req.signature}" class="h-20 border rounded bg-slate-50">
+                                    </div>
+                                ` : ''}
+
+                                <!-- فرم ویرایش و تصمیم‌گیری ادمین -->
+                                <div class="bg-blue-50/70 border border-blue-200 p-4 rounded-lg space-y-3">
+                                    <h4 class="font-bold text-xs text-blue-950 flex items-center gap-1">
+                                        <i class="fa-solid fa-pen-to-square"></i> تصمیم‌گیری و اصلاحات مدیر:
+                                    </h4>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                        <div>
+                                            <label class="block font-semibold mb-1">وضعیت درخواست:</label>
+                                            <select id="edit-status-${req.id}" class="w-full border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-blue-500">
+                                                <option value="در حال بررسی" ${req.status === 'در حال بررسی' ? 'selected' : ''}>در حال بررسی</option>
+                                                <option value="موافقت شده" ${req.status === 'موافقت شده' ? 'selected' : ''}>موافقت شده</option>
+                                                <option value="عدم موافقت" ${req.status === 'عدم موافقت' ? 'selected' : ''}>عدم موافقت</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="block font-semibold mb-1">تاریخ و ساعت قطعی:</label>
+                                            <input type="text" id="edit-date-${req.id}" value="${req.proposed_date}" class="w-full border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-blue-500">
+                                        </div>
+
+                                        <div>
+                                            <label class="block font-semibold mb-1">مکان قطعی جلسه:</label>
+                                            <input type="text" id="edit-loc-${req.id}" value="${req.location || ''}" class="w-full border rounded p-1.5 bg-white outline-none focus:ring-1 focus:ring-blue-500">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold mb-1">نظر و دستور مدیر / علت عدم موافقت:</label>
+                                        <input type="text" id="edit-notes-${req.id}" value="${req.admin_notes || ''}" placeholder="توضیحات لازم جهت نمایش به کاربر..." class="w-full border rounded p-1.5 text-xs bg-white outline-none focus:ring-1 focus:ring-blue-500">
+                                    </div>
+
+                                    <div class="flex justify-end gap-2 pt-2">
+                                        <button onclick="saveAdminChanges(${req.id})" class="bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs px-4 py-2 rounded-lg transition flex items-center gap-1 shadow">
+                                            <i class="fa-solid fa-floppy-disk"></i> ذخیره و بروزرسانی درخواست
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+                tbody.appendChild(accordionTr);
+            });
+        }
+
+        // باز و بسته شدن اکاردئون با انیمیشن نرم
+        function toggleAccordion(id) {
+            const content = document.getElementById(`acc-content-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            const isOpen = content.classList.contains('open');
+
+            // بستن سایر آکاردئون‌های باز
+            document.querySelectorAll('.accordion-detail').forEach(el => {
+                el.classList.remove('open');
+            });
+            document.querySelectorAll('[id^="icon-"]').forEach(ic => {
+                ic.className = 'fa-solid fa-chevron-down text-[10px]';
+            });
+
+            if (!isOpen) {
+                content.classList.add('open');
+                icon.className = 'fa-solid fa-chevron-up text-[10px]';
+            }
+        }
+
+        // ذخیره تغییرات ادمین
+        async function saveAdminChanges(id) {
+            const newStatus = document.getElementById(`edit-status-${id}`).value;
+            const newDate = document.getElementById(`edit-date-${id}`).value;
+            const newLoc = document.getElementById(`edit-loc-${id}`).value;
+            const newNotes = document.getElementById(`edit-notes-${id}`).value;
+
+            try {
+                const res = await fetch(`/api/admin/requests/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: newStatus,
+                        proposed_date: newDate,
+                        location: newLoc,
+                        admin_notes: newNotes
+                    })
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'بروزرسانی شد', text: result.message, timer: 1500, showConfirmButton: false });
+                    fetchRequests();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'خطا', text: result.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'خطا', text: 'امکان بروزرسانی اطلاعات وجود ندارد.' });
+            }
+        }
+
+        // سرچ زنده
+        function filterRequests() {
+            const query = document.getElementById('liveSearchInput').value.toLowerCase().trim();
+            if (!query) {
+                renderTable(allRequests);
+                return;
+            }
+
+            const filtered = allRequests.filter(r => 
+                (r.tracking_code && r.tracking_code.toLowerCase().includes(query)) ||
+                (r.req_name && r.req_name.toLowerCase().includes(query)) ||
+                (r.subject && r.subject.toLowerCase().includes(query)) ||
+                (r.status && r.status.toLowerCase().includes(query))
+            );
+
+            renderTable(filtered);
+        }
+
+        // درخواست مجوز نوتیفیکیشن مرورگر
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        Swal.fire({ icon: 'success', title: 'نوتیفیکیشن فعال شد', text: 'در صورت ثبت درخواست جدید، اعلانات مرورگر را دریافت خواهید کرد.' });
+                    } else {
+                        Swal.fire({ icon: 'info', title: 'عدم تایید', text: 'مجوز اعلان‌ها داده نشد.' });
+                    }
+                });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'پشتیبانی نشد', text: 'مرورگر شما از Notification پشتیبانی نمی‌کند.' });
+            }
+        }
+
+        function sendNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png'
+                });
+            }
+        }
+    </script>
+</body>
+</html>
